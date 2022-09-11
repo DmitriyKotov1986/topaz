@@ -8,26 +8,22 @@
 #include <QtSql/QSqlDatabase>
 #include <QtSql/QSqlQuery>
 #include <QTimer>
-#include <QTime>
 #include <QStringList>
+
 //My
-#include "thttpquery.h"
+#include "Common/thttpquery.h"
+#include "Common/tdbloger.h"
 #include "tconfig.h"
+#include "tgetdocs.h"
 
 namespace Topaz {
-
-typedef enum {
-    CODE_OK = 0,
-    CODE_ERROR = 1,
-    CODE_INFORMATION = 2
-} MSG_CODE;
 
 class TTopaz final : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit TTopaz(TConfig* cnf, QObject *parent = nullptr);
+    explicit TTopaz(QObject *parent = nullptr);
     ~TTopaz();
 
 public slots:
@@ -38,26 +34,40 @@ signals:
     void finished(); //испускаем перед завершением работы
 
 private:
-    void sendLogMsg(const uint16_t category, const QString& msg); //Сохранения логов
-    void saveLogToFile(const QString& msg); //сохраняет сообщение в файл исли произошел сбой записи лога в БД
-
-    void DBQueryExecute(const QString& queryText); //ывполняет запрос к DB
-    void DBCommit(); //выполняет commit db
-    void errorDBQuery(const QSqlQuery& query); //обрабатывает ошибку выполнения запроса к DB
+    void getDocs();
+    bool updateCurrentSmenaNumber(); //обновляет номер текущей открытой смены
+    void resetSending();
+    void clearImportDoc();
 
 private slots:
+    void work();
+    void clearImportDoc_timeout();
     //HTTP
     void sendToHTTPServer();
     void getAnswerHTTP(const QByteArray &answer); //получен ответ от сервеера
-    void errorOccurredHTTP(const QString& msg); //ошибка передачи данных на се
+    void errorOccurredHTTP(const QString& msg); //ошибка передачи данных на сервер
+
 
 private:
     TConfig* _cnf = nullptr; //настройки
-    QSqlDatabase _db; //Промежуточная БД
     Common::THTTPQuery* _HTTPQuery = nullptr;
+    Common::TDBLoger* _loger = nullptr;
+
+    QSqlDatabase _db;        //Промежуточная БД
+    QSqlDatabase _logdb;        //БД логирования
+    QSqlDatabase _topazDB;        //база данных Топаз-АЗС
+
+    QTimer* _workTimer = nullptr; //основной рабочий таймер
+
+    QTimer* _clearImportDocTimer = nullptr; //
+    QList<QString> _filesForDelete;
 
     QTimer* _sendHTTPTimer = nullptr; //таймер отправки HTTP запросов
-    bool _sending = false; //флаг что в текущий момент идет перылка данных.
+    QStringList _sendingDocsID; //список последних отправленных ID
+    bool _sending = false;            //флаг что в текущий момент идет пересылка данных.
+
+    TGetDocs* _getDocs = nullptr;
+    int _currentSmenaNumber = -1;
 };
 
 } //namespace LevelGauge

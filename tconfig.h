@@ -1,12 +1,13 @@
 #ifndef TCONFIG_H
 #define TCONFIG_H
 
+//QT
 #include <QString>
 #include <QFile>
 
 namespace Topaz {
 
-class TConfig
+class TConfig final
 {
 public:
     static TConfig* config(const QString& configFileName = "")
@@ -22,6 +23,7 @@ public:
 
 private:
     explicit TConfig(const QString& configFileName);
+    ~TConfig();
 
 public:
     bool save();
@@ -35,6 +37,24 @@ public:
     const QString& db_Host() const { return _db_Host; }
     quint16 db_Port() const { return _db_Port; }
 
+    //[TOPAZDATABASE]
+    const QString& topazdb_Driver() const { return _topazdb_Driver; }
+    const QString& topazdb_DBName() const { return _topazdb_DBName; }
+    const QString& topazdb_UserName() const { return _topazdb_UserName; }
+    const QString& topazdb_Password() const { return _topazdb_Password; }
+    const QString& topazdb_ConnectOptions() const { return _topazdb_ConnectOptions; }
+    const QString& topazdb_Host() const { return _topazdb_Host; }
+    quint16 topazdb_Port() const { return _topazdb_Port; }
+
+    //[TOPAZ]
+    const QString& topaz_DirName() const { return _topaz_DirName; }
+    int topaz_LastDocNumber() const { return _topaz_LastDocNumber; }
+    void set_topaz_LastDocNumber(int lastDocNumber) { _topaz_LastDocNumber = lastDocNumber; }
+    int topaz_OffActCode() const { return _topaz_OffActCode; }
+    bool topaz_OffActEnabled() const { return _topaz_OffActEnabled; }
+    bool topaz_InputActDeleteFile() const { return _topaz_InputActDeleteFile; }
+    int topaz_InputActCode() const { return _topaz_InputActCode; }
+
     //[SYSTEM]
     int sys_Interval() const { return _sys_Interval; }
     bool sys_DebugMode() const { return _sys_DebugMode; }
@@ -47,12 +67,11 @@ public:
     int srv_MaxRecord() const { return _srv_MaxRecord; }
 
     const QString& errorString() const { return _errorString; }
-    bool isError() const {return _isError; }
+    bool isError() const { return !_errorString.isEmpty(); }
 
 private:
     const QString _configFileName;
 
-    bool _isError = false;
     QString _errorString;
 
     //[DATABASE]
@@ -63,6 +82,23 @@ private:
     QString _db_ConnectOptions;
     QString _db_Host;
     quint16 _db_Port = 0;
+
+    //[TOPAZ_DATABASE]
+    QString _topazdb_Driver;
+    QString _topazdb_DBName;
+    QString _topazdb_UserName;
+    QString _topazdb_Password;
+    QString _topazdb_ConnectOptions;
+    QString _topazdb_Host;
+    quint16 _topazdb_Port = 0;
+
+    //[TOPAZ]
+    QString _topaz_DirName;
+    int _topaz_LastDocNumber = 0;
+    int _topaz_OffActCode = 20;
+    bool _topaz_OffActEnabled = false;
+    int _topaz_InputActCode = 1;
+    bool _topaz_InputActDeleteFile = false;
 
     //[SYSTEM]
     int _sys_Interval = 60 * 1000;
@@ -76,6 +112,6 @@ private:
     int _srv_MaxRecord = 100;
 };
 
-} //namespace LevelGaugeStatus
+} //namespace Topaz
 
 #endif // TCONFIG_H

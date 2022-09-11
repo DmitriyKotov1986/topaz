@@ -10,10 +10,14 @@ CONFIG -= app_bundle
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-        common.cpp \
+        Common/common.cpp \
+        Common/tdbloger.cpp \
+        Common/thttpquery.cpp \
         main.cpp \
         tconfig.cpp \
-        thttpquery.cpp \
+        tgetdocs.cpp \
+        tinputact.cpp \
+        toffact.cpp \
         ttopaz.cpp
 
 # Default rules for deployment.
@@ -22,9 +26,14 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
-    common.h \
+    Common/common.h \
+    Common/tdbloger.h \
+    Common/thttpquery.h \
     tconfig.h \
-    thttpquery.h \
+    tdoc.h \
+    tgetdocs.h \
+    tinputact.h \
+    toffact.h \
     ttopaz.h
 
 DISTFILES += \
