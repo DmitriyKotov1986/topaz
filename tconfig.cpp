@@ -83,6 +83,10 @@ TConfig::TConfig(const QString& configFileName) :
     _topaz_OffActCode = ini.value("OffActCode", 20).toInt();
     _topaz_InputActDeleteFile = ini.value("InputActDeleteFile", true).toBool();
     _topaz_InputActCode = ini.value("InputActCode", 1).toInt();
+    _topaz_CouponsEnable = ini.value("CouponsEnable", true).toBool();
+    _topaz_CouponsCode = ini.value("CouponsCode", 6).toInt();
+    _topaz_LastCouponsID = ini.value("LastCouponsID", 0).toInt();
+
     ini.endGroup();
 
     ini.beginGroup("SERVER");
@@ -111,6 +115,7 @@ bool TConfig::save()
 
     ini.beginGroup("TOPAZ");
     ini.setValue("LastDocNumber", _topaz_LastDocNumber);
+    ini.setValue("LastCouponsID", _topaz_LastCouponsID);
     ini.endGroup();
 
     ini.sync();

@@ -119,8 +119,9 @@ void TInputAct::deleteFiles()
             else {
                 _loger->sendLogMsg(TDBLoger::INFORMATION_CODE, QString("Cannot deleted file. Skip. File name: %1").arg(fileForDeleteItem.key()));
             }
-            fileForDeleteItem = _filesForDelete.erase(fileForDeleteItem);
+
         }
+        fileForDeleteItem = _filesForDelete.erase(fileForDeleteItem);
     }
 }
 

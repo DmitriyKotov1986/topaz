@@ -49,11 +49,15 @@ public:
     //[TOPAZ]
     const QString& topaz_DirName() const { return _topaz_DirName; }
     int topaz_LastDocNumber() const { return _topaz_LastDocNumber; }
-    void set_topaz_LastDocNumber(int lastDocNumber) { _topaz_LastDocNumber = lastDocNumber; }
+    void set_topaz_LastDocNumber(const int lastDocNumber) { _topaz_LastDocNumber = lastDocNumber; }
     int topaz_OffActCode() const { return _topaz_OffActCode; }
     bool topaz_OffActEnabled() const { return _topaz_OffActEnabled; }
     bool topaz_InputActDeleteFile() const { return _topaz_InputActDeleteFile; }
     int topaz_InputActCode() const { return _topaz_InputActCode; }
+    bool topaz_CouponsEnable() const { return _topaz_CouponsEnable; }
+    int topaz_CouponsCode() const { return _topaz_CouponsCode; }
+    int topaz_LastCouponsID() const { return _topaz_LastCouponsID; }
+    void set_topaz_LastCouponsID(const int lastCouponsId) { _topaz_LastCouponsID = lastCouponsId; }
 
     //[SYSTEM]
     int sys_Interval() const { return _sys_Interval; }
@@ -96,9 +100,12 @@ private:
     QString _topaz_DirName;
     int _topaz_LastDocNumber = 0;
     int _topaz_OffActCode = 20;
-    bool _topaz_OffActEnabled = false;
+    bool _topaz_OffActEnabled = true;
     int _topaz_InputActCode = 1;
-    bool _topaz_InputActDeleteFile = false;
+    bool _topaz_InputActDeleteFile = true;
+    bool _topaz_CouponsEnable = true;
+    int _topaz_CouponsCode = 6;
+    int _topaz_LastCouponsID = 0;
 
     //[SYSTEM]
     int _sys_Interval = 60 * 1000;

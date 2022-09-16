@@ -43,7 +43,7 @@ public:
 
     virtual ~TDoc() {};
 
-    virtual TDocInfo getNewDoc(uint number) = 0; //возвращает текст XML документа
+    virtual TDocInfo getNewDoc(uint number = 0) = 0; //возвращает текст XML документа
 
     int docTypeCode() const { //возвращает код документа
         Q_ASSERT(_docTypeCode != -1);

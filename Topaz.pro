@@ -15,6 +15,7 @@ SOURCES += \
         Common/thttpquery.cpp \
         main.cpp \
         tconfig.cpp \
+        tcoupons.cpp \
         tgetdocs.cpp \
         tinputact.cpp \
         toffact.cpp \
@@ -30,6 +31,7 @@ HEADERS += \
     Common/tdbloger.h \
     Common/thttpquery.h \
     tconfig.h \
+    tcoupons.h \
     tdoc.h \
     tgetdocs.h \
     tinputact.h \

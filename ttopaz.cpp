@@ -305,13 +305,22 @@ void TTopaz::clearImportDoc()
     for (const auto& fileInfoItem: fileList)
     {
         QString fileName = fileInfoItem.absoluteFilePath();
-        _filesForDelete.push_back(fileName);
-        _loger->sendLogMsg(TDBLoger::INFORMATION_CODE, QString("Find file after new smena start. File name: %1").arg(fileName));
+        if (fileName.indexOf("tovar") <= 0)
+        {
+            _filesForDelete.push_back(fileName);
+            _loger->sendLogMsg(TDBLoger::INFORMATION_CODE, QString("Find file after new smena start. File name: %1").arg(fileName));
+
+        }
+        else
+        {
+            _loger->sendLogMsg(TDBLoger::INFORMATION_CODE, QString("Find file after new smena start is InputAct type. Skip. File name: %1").arg(fileName));
+        }
         find = true;
     }
+
     if (!find)
     {
-        _loger->sendLogMsg(TDBLoger::INFORMATION_CODE, QString("Cannot find file for document after new smena start."));
+        _loger->sendLogMsg(TDBLoger::OK_CODE, QString("Cannot find file for document after new smena start."));
     }
 
     _clearImportDocTimer->start();
