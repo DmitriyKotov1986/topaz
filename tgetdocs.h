@@ -9,6 +9,7 @@
 //My
 #include "tconfig.h"
 #include "tdoc.h"
+#include "tcoupons.h"
 #include "Common/tdbloger.h"
 
 namespace Topaz {
@@ -35,6 +36,8 @@ private:
     QMap<int, TDoc*> _docs; //карта новых документов, ключ - код документа в БД топаза, значение - класс обработки документа
 
     QString _errorString;
+
+    TCoupons* _coupons = nullptr; //Класс получения документов продажи талонов
 };
 
 } // namespace Topaz

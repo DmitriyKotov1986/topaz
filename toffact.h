@@ -12,7 +12,7 @@ namespace Topaz {
 class TOffAct final: public TDoc
 {
 public:
-    explicit TOffAct(QSqlDatabase& db) : TDoc(db, TConfig::config()->topaz_OffActCode()) {}
+    explicit TOffAct(QSqlDatabase& db);
 
     TDoc::TDocInfo getNewDoc(uint number) override; //возвращает текст XML документа
 };

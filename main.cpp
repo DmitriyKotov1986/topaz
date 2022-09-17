@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
     QString configFileName = parser.value(Config);
     if (!parser.isSet(Config))
     {
-        configFileName = a.applicationDirPath() +"/" + parser.value(Config);
+        configFileName = a.applicationDirPath() + "/" + parser.value(Config);
     }
 
     //Читаем конигурацию

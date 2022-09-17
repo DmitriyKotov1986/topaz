@@ -13,6 +13,13 @@ using namespace Topaz;
 
 using namespace Common;
 
+TOffAct::TOffAct(QSqlDatabase &db) :
+    TDoc(db, TConfig::config()->topaz_OffActCode())
+{
+    Q_ASSERT(_db.isOpen());
+    Q_ASSERT(_docTypeCode >= 0);
+}
+
 TDoc::TDocInfo Topaz::TOffAct::getNewDoc(uint number)
 {
     _errorString.clear();

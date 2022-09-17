@@ -18,6 +18,10 @@ Topaz::TInputAct::TInputAct(QSqlDatabase &db) :
     TDoc(db, TConfig::config()->topaz_InputActCode()),
     _loger(Common::TDBLoger::DBLoger())
 {
+    Q_CHECK_PTR(_loger);
+    Q_ASSERT(_db.isOpen());
+    Q_ASSERT(_docTypeCode >= 0);
+
     _deleteFileTimer = new QTimer;
 
     QObject::connect(_deleteFileTimer, SIGNAL(timeout()), SLOT(deleteFiles()));

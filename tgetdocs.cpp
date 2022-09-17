@@ -32,6 +32,10 @@ Topaz::TGetDocs::TGetDocs(QSqlDatabase& db) :
     {
         _docs.insert(_cnf->topaz_InputActCode(), new TInputAct(db));
     }
+    if (_cnf->topaz_CouponsEnable())
+    {
+        _coupons = new TCoupons(db);
+    }
 }
 
 Topaz::TGetDocs::~TGetDocs()
@@ -39,6 +43,11 @@ Topaz::TGetDocs::~TGetDocs()
     for (auto docItem = _docs.begin(); docItem != _docs.end(); ++docItem)
     {
         delete docItem.value();
+    }
+
+    if (_coupons != nullptr)
+    {
+        delete _coupons;
     }
 }
 
@@ -102,15 +111,15 @@ Topaz::TGetDocs::TDocsInfoList Topaz::TGetDocs::getDocs()
             if (_docs[newDocItem.DocType]->isError())
             {
                 _loger->sendLogMsg(TDBLoger::MSG_CODE::ERROR_CODE, QString("Document from Topaz-AZS processing error. Type: %1. ID: %2. Msg: %3")
-                                   .arg(newDocItem.DocType).arg(newDocItem.DocID).arg(_docs[newDocItem.DocType]->errorString()));
+                                       .arg(newDocItem.DocType).arg(newDocItem.DocID).arg(_docs[newDocItem.DocType]->errorString()));
                 continue;
             }
-            else
-            {
-                _loger->sendLogMsg(TDBLoger::MSG_CODE::OK_CODE, QString("Document from Topaz-AZS processing success finished. Type: %1. ID: %2")
+
+            res.push_back(newDocInfo);
+
+            _loger->sendLogMsg(TDBLoger::MSG_CODE::OK_CODE, QString("Document from Topaz-AZS processing success finished. Type: %1. ID: %2")
                                    .arg(newDocItem.DocType).arg(newDocItem.DocID));
-                res.push_back(newDocInfo);
-            }
+
         }
         else
         {
@@ -120,8 +129,17 @@ Topaz::TGetDocs::TDocsInfoList Topaz::TGetDocs::getDocs()
 
     }
 
-    _cnf->set_topaz_LastDocNumber(lastDocNumber);
-    _cnf->save();
+    if (_cnf->topaz_LastDocNumber() != lastDocNumber)
+    {
+        _cnf->set_topaz_LastDocNumber(lastDocNumber);
+        _cnf->save();
+    }
+
+    //добавляем документы продажи талонов
+    while (!_coupons->isEmpty())
+    {
+        res.push_back(_coupons->getNewDoc(0));
+    }
 
     return res;
 }

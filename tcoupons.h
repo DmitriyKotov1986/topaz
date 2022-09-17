@@ -24,6 +24,7 @@ public:
 
 public:
     TDoc::TDocInfo getNewDoc(uint number) override; //возвращает текст XML документа
+    bool isEmpty() const {return _docs.isEmpty(); }
 
 private:
     void getCoupons();
@@ -31,6 +32,7 @@ private:
 private:
     QTimer* _getCouponsTimer = nullptr;
     Common::TDBLoger* _loger = nullptr;
+    Topaz::TConfig* _cnf = nullptr;
 
     QQueue<TDoc::TDocInfo> _docs;
 };
