@@ -215,18 +215,18 @@ void TTopaz::getDocs()
     _db.transaction();
     for (const auto& docInfoItem: docsInfoList)
     {
+       // qDebug() << docInfoItem.XMLText.toUtf8();
+
         QSqlQuery query(_db);
         QString queryText =
                 QString("INSERT INTO TOPAZDOCS (DATE_TIME, DOC_TYPE, DOC_NUMBER, SMENA, CREATER, BODY) "
                         "VALUES ('%1', '%2', %3, %4, '%5', ? )").arg(docInfoItem.dateTime.toString("yyyy-MM-dd hh:mm:ss.zzz"))
                         .arg(docInfoItem.type).arg(docInfoItem.number).arg(docInfoItem.smena).arg(docInfoItem.creater);
 
-
-
         query.prepare(queryText);
         query.bindValue(0, docInfoItem.XMLText.toUtf8());
 
-        Common::writeDebugLogFile("QUERY>", query.lastQuery());
+        writeDebugLogFile(QString("QUERY TO %1>").arg(_db.connectionName()), queryText);
 
         if (!query.exec())
         {

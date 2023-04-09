@@ -11,13 +11,17 @@
 #include <QSqlQuery>
 #include <QSqlError>
 
-namespace Common {
+namespace Common
+{
 
-typedef enum : int {
-    //SQL
+enum EXIT_CODE: int
+{
+    //For all
     OK = 0,                         //успешное завершение
     LOAD_CONFIG_ERR = -1,           //ошибка чтения файла конфигурации
     ALREADY_RUNNIG = -2,            //попытка повторного запуска процесса
+    START_LOGGER_ERR = -3,
+    UNREGISTER_COPY = -4,
     //SQL
     SQL_EXECUTE_QUERY_ERR = -10,   //ошибка выполнения SQL запроса
     SQL_COMMIT_ERR = -11,
@@ -34,7 +38,7 @@ typedef enum : int {
     XML_EMPTY = -500,
     XML_PARSE_ERR = 501,
     XML_UNDEFINE_TOCKEN = 502
-} EXIT_CODE;
+};
 
 bool checkAlreadyRun();
 

@@ -5,9 +5,10 @@
 #include <windows.h>
 
 //My
+#include "Common/common.h"
+#include "Common/regcheck.h"
 #include "tconfig.h"
 #include "ttopaz.h"
-#include "Common/common.h"
 
 using namespace Topaz;
 
@@ -20,7 +21,7 @@ int main(int argc, char *argv[])
     //устаналиваем основные настройки
     QCoreApplication::setApplicationName("Topaz");
     QCoreApplication::setOrganizationName("OOO 'SA'");
-    QCoreApplication::setApplicationVersion(QString("Version:0.1a Build: %1 %2").arg(__DATE__).arg(__TIME__));
+    QCoreApplication::setApplicationVersion(QString("Version:0.2a Build: %1 %2").arg(__DATE__).arg(__TIME__));
 
     setlocale(LC_CTYPE, ""); //настраиваем локаль
 
@@ -57,8 +58,32 @@ int main(int argc, char *argv[])
         qCritical() << QString("%1 %2").arg(QTime::currentTime().toString("hh:mm:ss")).arg(msg);
         Common::writeLogFile("ERR>", msg);
 
-        exit(EXIT_CODE::LOAD_CONFIG_ERR); // -1
+        return EXIT_CODE::LOAD_CONFIG_ERR; // -1
     }
+
+    //проверяем регистрацию ПО
+    RegCheck* regCheck = new RegCheck(cnf->srv_UserName());
+
+    if (regCheck->isChecket())
+    {
+        QString msg = QString("Registration verification passed successfully");
+        qDebug() << QString("%1 %2").arg(QTime::currentTime().toString("hh:mm:ss")).arg(msg);
+    }
+    else
+    {
+        QString msg = QString("Unregistered copy of the program. Registration key: %1. Message: %2")
+                .arg(regCheck->id()).arg(regCheck->messageString());
+
+        qCritical() << QString("%1 %2").arg(QTime::currentTime().toString("hh:mm:ss")).arg(msg);
+        Common::writeLogFile("ERR>", msg);
+
+        TConfig::deleteConfig();
+        delete regCheck;
+
+        return EXIT_CODE::UNREGISTER_COPY; // -4
+    }
+
+    delete regCheck;
 
     //настраиваем таймер
     QTimer startTimer;
@@ -70,12 +95,16 @@ int main(int argc, char *argv[])
 
     //При запуске выполняем слот Start
     QObject::connect(&startTimer, SIGNAL(timeout()), &topaz, SLOT(start()));
-    //Для завершения работы необходимоподать сигнал Finished
+    //Для завершения работы необходимо подать сигнал Finished
     QObject::connect(&topaz, SIGNAL(finished()), &a, SLOT(quit()));
 
     //запускаем таймер
     startTimer.start();
 
     //запускаем цикл обработчика событий
-    return a.exec();
+    auto res = a.exec();
+
+    TConfig::deleteConfig();
+
+    return res;
 }

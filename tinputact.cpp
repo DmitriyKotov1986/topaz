@@ -89,6 +89,9 @@ Topaz::TDoc::TDocInfo Topaz::TInputAct::getNewDoc(uint number)
     XMLWriter.writeTextElement("Session", QString::number(res.smena));
     XMLWriter.writeTextElement("Creater", res.creater);
     XMLWriter.writeTextElement("DocumentDateTime", res.dateTime.toString("yyyy-MM-dd hh:mm:ss.zzz"));
+    XMLWriter.writeEndElement(); //Root
+    XMLWriter.writeEndDocument();
+
     query.finish();
     DBCommit(_db);
 

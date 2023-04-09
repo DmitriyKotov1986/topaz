@@ -11,6 +11,7 @@ CONFIG -= app_bundle
 
 SOURCES += \
         Common/common.cpp \
+        Common/regcheck.cpp \
         Common/tdbloger.cpp \
         Common/thttpquery.cpp \
         main.cpp \
@@ -28,6 +29,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 HEADERS += \
     Common/common.h \
+    Common/regcheck.h \
     Common/tdbloger.h \
     Common/thttpquery.h \
     tconfig.h \
@@ -40,3 +42,5 @@ HEADERS += \
 
 DISTFILES += \
     ToDo
+
+RC_ICONS += res/Topaz.ico

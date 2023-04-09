@@ -5,21 +5,14 @@
 #include <QString>
 #include <QFile>
 
-namespace Topaz {
+namespace Topaz
+{
 
 class TConfig final
 {
 public:
-    static TConfig* config(const QString& configFileName = "")
-    {
-        static TConfig* _config = nullptr;
-
-        if (_config == nullptr){
-            _config = new TConfig(configFileName);
-        }
-
-        return _config;
-    };
+    static TConfig* config(const QString& configFileName = "");
+    static void deleteConfig();
 
 private:
     explicit TConfig(const QString& configFileName);
@@ -70,7 +63,7 @@ public:
     const QString& srv_Password() const { return _srv_Password; }
     int srv_MaxRecord() const { return _srv_MaxRecord; }
 
-    const QString& errorString() const { return _errorString; }
+    QString errorString();
     bool isError() const { return !_errorString.isEmpty(); }
 
 private:

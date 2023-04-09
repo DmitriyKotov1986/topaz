@@ -8,26 +8,19 @@
 #include <QTimer>
 #include <QHash>
 
-namespace Common {
+namespace Common
+{
 
 class THTTPQuery final : public QObject
 {
     Q_OBJECT
 
 public:
-    static THTTPQuery* HTTPQuery(const QString& url = "", QObject* parent = nullptr) {
-        static THTTPQuery* _HTTPQuery = nullptr;
-
-        if (_HTTPQuery == nullptr) {
-            _HTTPQuery = new THTTPQuery(url, parent);
-        }
-        return _HTTPQuery;
-    }
+    static THTTPQuery* HTTPQuery(const QString& url = "", QObject* parent = nullptr);
+    static void deleteTHTTPQuery();
 
 private:
     explicit THTTPQuery(const QString& url, QObject* parent = nullptr);
-
-public:
     ~THTTPQuery();
 
 public slots:

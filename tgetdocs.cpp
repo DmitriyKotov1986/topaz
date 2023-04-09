@@ -55,6 +55,17 @@ Topaz::TGetDocs::TDocsInfoList Topaz::TGetDocs::getDocs()
 {
     _errorString.clear();
 
+    //создаем список новых документов
+
+    TDocsInfoList res;
+
+    //добавляем документы продажи талонов
+    while (!_coupons->isEmpty())
+    {
+        res.push_back(_coupons->getNewDoc(0));
+      //  _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, QString("Add coupons sales. Size: %1. ").arg(res.size()));
+    }
+
     //получаем список новых документов
     QSqlQuery query(_db);
     query.setForwardOnly(true);
@@ -74,8 +85,6 @@ Topaz::TGetDocs::TDocsInfoList Topaz::TGetDocs::getDocs()
         return TDocsInfoList();
     }
 
-    //создаем список новых документов
-
     typedef struct
     {
         int DocType;
@@ -83,7 +92,6 @@ Topaz::TGetDocs::TDocsInfoList Topaz::TGetDocs::getDocs()
     } TNewDoc;
 
     QList<TNewDoc> newDocsList;
-
     int lastDocNumber = _cnf->topaz_LastDocNumber();
     while (query.next())
     {
@@ -100,7 +108,6 @@ Topaz::TGetDocs::TDocsInfoList Topaz::TGetDocs::getDocs()
     DBCommit(_db);
 
     //обрабатываем новые документы по очереди
-    TDocsInfoList res;
     for (auto newDocItem: newDocsList)
     {
         //если есть обработчик для данного типа документов - запускаем его
@@ -117,8 +124,8 @@ Topaz::TGetDocs::TDocsInfoList Topaz::TGetDocs::getDocs()
 
             res.push_back(newDocInfo);
 
-            _loger->sendLogMsg(TDBLoger::MSG_CODE::OK_CODE, QString("Document from Topaz-AZS processing success finished. Type: %1. ID: %2")
-                                   .arg(newDocItem.DocType).arg(newDocItem.DocID));
+            _loger->sendLogMsg(TDBLoger::MSG_CODE::OK_CODE, QString("Document from Topaz-AZS processing success finished. Type: %1. ID: %2. Document number: %3")
+                                   .arg(newDocItem.DocType).arg(newDocItem.DocID).arg(newDocInfo.number));
 
         }
         else
@@ -133,12 +140,6 @@ Topaz::TGetDocs::TDocsInfoList Topaz::TGetDocs::getDocs()
     {
         _cnf->set_topaz_LastDocNumber(lastDocNumber);
         _cnf->save();
-    }
-
-    //добавляем документы продажи талонов
-    while (!_coupons->isEmpty())
-    {
-        res.push_back(_coupons->getNewDoc(0));
     }
 
     return res;

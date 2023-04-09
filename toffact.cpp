@@ -85,7 +85,7 @@ TDoc::TDocInfo Topaz::TOffAct::getNewDoc(uint number)
     XMLWriter.writeTextElement("Session", QString::number(res.smena));
     XMLWriter.writeTextElement("Creater", res.creater);
     XMLWriter.writeTextElement("DocumentDateTime", res.dateTime.toString("yyyy-MM-dd hh:mm:ss.zzz"));
-
+    XMLWriter.writeStartElement("Items");
     do
     {
         XMLWriter.writeStartElement("Item");
@@ -95,7 +95,7 @@ TDoc::TDocInfo Topaz::TOffAct::getNewDoc(uint number)
         XMLWriter.writeEndElement();
     }
     while (query.next());
-
+    XMLWriter.writeEndElement(); //Items
     XMLWriter.writeEndElement(); //root
     XMLWriter.writeEndDocument();
 

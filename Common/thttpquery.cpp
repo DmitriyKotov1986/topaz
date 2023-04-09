@@ -8,6 +8,32 @@
 
 using namespace Common;
 
+//static
+static THTTPQuery* HTTPQueryPtr = nullptr;
+
+THTTPQuery* THTTPQuery::HTTPQuery(const QString& url, QObject* parent)
+{
+    if (HTTPQueryPtr == nullptr)
+    {
+        HTTPQueryPtr = new THTTPQuery(url, parent);
+    }
+
+    return HTTPQueryPtr;
+}
+
+void THTTPQuery::deleteTHTTPQuery()
+{
+    Q_CHECK_PTR(HTTPQueryPtr);
+
+    if (HTTPQueryPtr != nullptr)
+    {
+        delete HTTPQueryPtr;
+
+        HTTPQueryPtr = nullptr;
+    }
+}
+
+//class
 THTTPQuery::THTTPQuery(const QString& url, QObject* parent)
     : QObject(parent)
     , _manager()

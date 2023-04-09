@@ -8,6 +8,31 @@
 
 using namespace Topaz;
 
+//static
+
+static TConfig* configPtr = nullptr;
+
+TConfig* TConfig::config(const QString& configFileName)
+{
+    if (configPtr == nullptr)
+    {
+        configPtr = new TConfig(configFileName);
+    }
+
+    return configPtr;
+};
+
+void TConfig::deleteConfig()
+{
+    Q_CHECK_PTR(configPtr);
+
+    if (configPtr != nullptr)
+    {
+        delete configPtr;
+        configPtr = nullptr;
+    }
+}
+
 TConfig::TConfig(const QString& configFileName) :
     _configFileName(configFileName)
 {
@@ -127,4 +152,13 @@ bool TConfig::save()
 
     return true;
 }
+
+QString TConfig::errorString()
+{
+    auto res = _errorString;
+    _errorString.clear();
+
+    return res;
+}
+
 

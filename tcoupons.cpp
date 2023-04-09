@@ -42,11 +42,19 @@ TDoc::TDocInfo Topaz::TCoupons::getNewDoc(uint number)
     {
         return _docs.dequeue();
     }
+
+    return TDoc::TDocInfo();
 }
 
 void TCoupons::getCoupons()
 {
     int lastDocNumber = _cnf->topaz_LastCouponsID();
+
+    if (lastDocNumber == 0)
+    {
+        lastDocNumber = getLastDocNumber();
+        _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, QString("Redefine LastCouponsID. New value: %1").arg(lastDocNumber));
+    }
 
     //получаем список новых документов
     QSqlQuery query(_db);
@@ -71,15 +79,20 @@ void TCoupons::getCoupons()
     TDoc::TDocInfo res;
     QString XMLStr;
     QXmlStreamWriter* XMLWriter = nullptr;
+    bool find = false;
 
     while (query.next())
     {
+        find = true;
+
         if (query.value("DocID").toInt() != currentDocId)
         {
             if (XMLWriter != nullptr)
             {
+                XMLWriter->writeEndElement(); //Coupons
                 XMLWriter->writeEndElement(); //Root
-                XMLStr.toUtf8().toBase64(QByteArray::Base64Encoding); //для сохранения спецсимволов и кодировки сохряняем документ в base64
+                res.XMLText = XMLStr.toUtf8().toBase64(QByteArray::Base64Encoding); //для сохранения спецсимволов и кодировки сохряняем документ в base64
+
                 _docs.enqueue(res);
 
                 delete XMLWriter;
@@ -110,27 +123,46 @@ void TCoupons::getCoupons()
             XMLWriter->writeTextElement("FuelName", query.value("CouponFuelName").toString().toUtf8());
             XMLWriter->writeEndElement(); //Sales
 
+            XMLWriter->writeStartElement("Coupons");
             XMLWriter->writeStartElement("Coupon");
-            XMLWriter->writeTextElement("Code", query.value("Code").toString());
+            XMLWriter->writeTextElement("Code", query.value("CouponCode").toString());
             XMLWriter->writeTextElement("CouponVolume", query.value("CouponVolume").toString());
             XMLWriter->writeTextElement("VolumeFact", query.value("VolumeFact").toString());
             XMLWriter->writeEndElement(); //Coupon
 
-            _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, QString("Find sales of coupons. Document ID: %1. Total volume: %2")
-                .arg(res.number).arg(query.value("Volume").toString()));
+            currentDocId = query.value("DocID").toInt();
+
+            _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, QString("Find sales of coupons. ID: %1. Document ID: %2. Total volume: %3")
+                .arg(query.value("CouponID").toString()).arg(res.number).arg(query.value("Volume").toString()));
         }
         else
         {
             Q_CHECK_PTR(XMLWriter);
 
             XMLWriter->writeStartElement("Coupon");
-            XMLWriter->writeTextElement("Code", query.value("Code").toString());
+            XMLWriter->writeTextElement("Code", query.value("CouponCode").toString());
             XMLWriter->writeTextElement("CouponVolume", query.value("CouponVolume").toString());
             XMLWriter->writeTextElement("VolumeFact", query.value("VolumeFact").toString());
             XMLWriter->writeEndElement(); //Coupon
         }
 
-        lastDocNumber = std::max(lastDocNumber, query.value("CouponsID").toInt());
+        lastDocNumber = std::max(lastDocNumber, query.value("CouponID").toInt());
+    }
+
+    if (XMLWriter != nullptr)
+    {
+        XMLWriter->writeEndElement(); //Coupons
+        XMLWriter->writeEndElement(); //Root
+        res.XMLText = XMLStr.toUtf8().toBase64(QByteArray::Base64Encoding); //для сохранения спецсимволов и кодировки сохряняем документ в base64
+
+        _docs.enqueue(res);
+
+        delete XMLWriter;
+    }
+
+    if (!find)
+    {
+        _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, QString("Not found new coupons sales"));
     }
 
     query.finish();
@@ -142,3 +174,35 @@ void TCoupons::getCoupons()
         _cnf->save();
     }
 }
+
+int TCoupons::getLastDocNumber()
+{
+    //получаем список новых документов
+    QSqlQuery query(_db);
+    query.setForwardOnly(true);
+
+    _db.transaction();
+    QString queryText = QString("SELECT MAX(\"CouponID\") AS \"MaxCouponsID\" "
+                                "FROM \"rgCoupons\" ");
+
+    writeDebugLogFile(QString("QUERY TO %1>").arg(_db.connectionName()), queryText);
+
+    if (!query.exec(queryText))
+    {
+        errorDBQuery(_db, query);
+        return 0;
+    }
+
+   int res = 0;
+   if (query.first())
+   {
+       res = query.value("MaxCouponsID").toInt();
+   }
+
+    query.finish();
+    DBCommit(_db);
+
+    return res;
+}
+
+

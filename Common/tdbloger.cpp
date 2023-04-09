@@ -10,6 +10,32 @@
 
 using namespace Common;
 
+//static
+static TDBLoger* DBLogerPtr = nullptr;
+
+TDBLoger* TDBLoger::DBLoger(QSqlDatabase* db, bool debugMode, QObject* parent)
+{
+    if (DBLogerPtr == nullptr)
+    {
+        DBLogerPtr = new TDBLoger(*db, debugMode, parent);
+    }
+
+    return DBLogerPtr;
+}
+
+void TDBLoger::deleteDBLoger()
+{
+    Q_CHECK_PTR(DBLogerPtr);
+
+    if (DBLogerPtr != nullptr)
+    {
+        delete DBLogerPtr;
+
+        DBLogerPtr = nullptr;
+    }
+}
+
+//class
 TDBLoger::TDBLoger(QSqlDatabase& db, bool debugMode /* = true */, QObject* parent /* = nullptr */) :
     QObject(parent),
     _db(db),
@@ -34,7 +60,15 @@ TDBLoger::~TDBLoger()
     }
 }
 
-void TDBLoger::sendLogMsg(uint16_t category, const QString& msg)
+QString TDBLoger::errorString()
+{
+    auto res = _errorString;
+    _errorString.clear();
+
+    return res;
+}
+
+void TDBLoger::sendLogMsg(int category, const QString& msg)
 {
     if (category == MSG_CODE::CRITICAL_CODE)
     {
@@ -56,3 +90,4 @@ void TDBLoger::sendLogMsg(uint16_t category, const QString& msg)
 
     Common::DBQueryExecute(_db, queryText);
 }
+

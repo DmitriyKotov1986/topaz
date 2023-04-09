@@ -47,7 +47,6 @@ private slots:
     void getAnswerHTTP(const QByteArray &answer); //получен ответ от сервеера
     void errorOccurredHTTP(const QString& msg); //ошибка передачи данных на сервер
 
-
 private:
     TConfig* _cnf = nullptr; //настройки
     Common::THTTPQuery* _HTTPQuery = nullptr;

@@ -22,12 +22,12 @@ public:
     explicit TCoupons(QSqlDatabase& db);
     ~TCoupons();
 
-public:
     TDoc::TDocInfo getNewDoc(uint number) override; //возвращает текст XML документа
-    bool isEmpty() const {return _docs.isEmpty(); }
+    bool isEmpty() const { return _docs.isEmpty(); }
 
-private:
+private slots:
     void getCoupons();
+    int getLastDocNumber();
 
 private:
     QTimer* _getCouponsTimer = nullptr;

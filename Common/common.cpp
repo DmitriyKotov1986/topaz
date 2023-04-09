@@ -13,7 +13,8 @@
 
 using namespace Common;
 
-void Common::writeLogFile(const QString& prefix, const QString& msg) {
+void Common::writeLogFile(const QString& prefix, const QString& msg)
+{
     const QString logFileName = QString("./Log/%1.log").arg(QCoreApplication::applicationName()); //имя файла лога
 
     QDir logDir(QFileInfo(logFileName).absolutePath());
@@ -99,7 +100,7 @@ void Common::DBCommit(QSqlDatabase& db)
 
 void Common::errorDBQuery(QSqlDatabase& db, const QSqlQuery& query)
 {
-    QString msg = QString("Cannot execute query. Error: %1. Quety: %2").arg(query.lastError().text()).arg(query.lastQuery());
+    QString msg = QString("Cannot execute query. Error: %1. Query: %2").arg(query.lastError().text()).arg(query.lastQuery());
     qCritical() << QString("%1 %2").arg(QTime::currentTime().toString("hh:mm:ss")).arg(msg);
     Common::saveLogToFile(msg);
 
