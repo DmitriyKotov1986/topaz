@@ -17,8 +17,10 @@ SOURCES += \
         main.cpp \
         tconfig.cpp \
         tcoupons.cpp \
+        tdoc.cpp \
         tgetdocs.cpp \
         tinputact.cpp \
+        tnewsmena.cpp \
         toffact.cpp \
         ttopaz.cpp
 
@@ -37,6 +39,7 @@ HEADERS += \
     tdoc.h \
     tgetdocs.h \
     tinputact.h \
+    tnewsmena.h \
     toffact.h \
     ttopaz.h
 

@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
     }
 
     //Читаем конигурацию
-    TConfig* cnf = TConfig::config(configFileName);
+    auto cnf = TConfig::config(configFileName);
     if (cnf->isError())
     {
         QString msg = "Error load configuration: " + cnf->errorString();
@@ -61,8 +61,9 @@ int main(int argc, char *argv[])
         return EXIT_CODE::LOAD_CONFIG_ERR; // -1
     }
 
+#ifndef QT_DEBUG
     //проверяем регистрацию ПО
-    RegCheck* regCheck = new RegCheck(cnf->srv_UserName());
+    auto regCheck = new RegCheck(cnf->srv_UserName());
 
     if (regCheck->isChecket())
     {
@@ -84,6 +85,7 @@ int main(int argc, char *argv[])
     }
 
     delete regCheck;
+#endif
 
     //настраиваем таймер
     QTimer startTimer;

@@ -7,140 +7,81 @@
 //My
 #include "toffact.h"
 #include "tinputact.h"
-#include "Common/common.h"
+#include "tcoupons.h"
+#include "tnewsmena.h"
 
 using namespace Topaz;
 
-using namespace Common;
-
-Topaz::TGetDocs::TGetDocs(QSqlDatabase& db) :
-    _cnf(Topaz::TConfig::config()),
-    _db(db),
-    _loger(TDBLoger::DBLoger())
+Topaz::TGetDocs::TGetDocs()
+    : _cnf(TConfig::config())
 {
     Q_CHECK_PTR(_cnf);
-    Q_CHECK_PTR(_loger);
-    Q_ASSERT(db.isValid());
 
     //фабрика загружаемых документов
     //добавляем документы которые необходимо выдергивать из Топаза
     if (_cnf->topaz_OffActEnabled())
     {
-        _docs.insert(_cnf->topaz_OffActCode(), new TOffAct(db));
+        auto offAct = new TOffAct();
+        if (offAct->isError())
+        {
+            _errorString = QString("Error in creating Off Act class. Error: %1").arg(offAct->errorString());
+            delete offAct;
+
+            return;
+        }
+        _docs.push_back(offAct);
     }
-    if (_cnf->topaz_InputActDeleteFile())
+    if (_cnf->topaz_InputActEnabled())
     {
-        _docs.insert(_cnf->topaz_InputActCode(), new TInputAct(db));
+        auto inputAct = new TInputAct();
+        if (inputAct->isError())
+        {
+            _errorString = QString("Error in creating Input Act class. Error: %1").arg(inputAct->errorString());
+            delete inputAct;
+
+            return;
+        }
+        _docs.push_back(inputAct);
     }
     if (_cnf->topaz_CouponsEnable())
     {
-        _coupons = new TCoupons(db);
+        auto coupons = new TCoupons();
+        if (coupons->isError())
+        {
+            _errorString = QString("Error in creating Coupons class. Error: %1").arg(coupons->errorString());
+            delete coupons;
+
+            return;
+        }
+        _docs.push_back(coupons);
+    }
+    if (_cnf->topaz_NewSmenaEnabled())
+    {
+        auto newSmena = new TNewSmena();
+        if (newSmena->isError())
+        {
+            _errorString = QString("Error in creating New Smena class. Error: %1").arg(newSmena->errorString());
+            delete newSmena;
+
+            return;
+        }
+        _docs.push_back(newSmena);
     }
 }
 
 Topaz::TGetDocs::~TGetDocs()
 {
-    for (auto docItem = _docs.begin(); docItem != _docs.end(); ++docItem)
+    for (auto doc_it = _docs.begin(); doc_it != _docs.end(); ++doc_it)
     {
-        delete docItem.value();
+        delete *doc_it;
     }
-
-    if (_coupons != nullptr)
-    {
-        delete _coupons;
-    }
+    _docs.clear();
 }
 
-Topaz::TGetDocs::TDocsInfoList Topaz::TGetDocs::getDocs()
+QString Topaz::TGetDocs::errorString()
 {
+    auto res = _errorString;
     _errorString.clear();
-
-    //создаем список новых документов
-
-    TDocsInfoList res;
-
-    //добавляем документы продажи талонов
-    while (!_coupons->isEmpty())
-    {
-        res.push_back(_coupons->getNewDoc(0));
-      //  _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, QString("Add coupons sales. Size: %1. ").arg(res.size()));
-    }
-
-    //получаем список новых документов
-    QSqlQuery query(_db);
-    query.setForwardOnly(true);
-
-    _db.transaction();
-    QString queryText = QString("SELECT MAX(\"rgItemRestID\") as \"rgItemRestID\", \"DocTypeID\", \"DocID\" "
-                                "FROM \"rgItemRests\" "
-                                "WHERE \"rgItemRestID\" > %1 "
-                                "GROUP BY \"DocTypeID\", \"DocID\" ")
-                                .arg(_cnf->topaz_LastDocNumber());
-
-    writeDebugLogFile(QString("QUERY TO %1>").arg(_db.connectionName()), queryText);
-
-    if (!query.exec(queryText))
-    {
-        errorDBQuery(_db, query);
-        return TDocsInfoList();
-    }
-
-    typedef struct
-    {
-        int DocType;
-        int DocID;
-    } TNewDoc;
-
-    QList<TNewDoc> newDocsList;
-    int lastDocNumber = _cnf->topaz_LastDocNumber();
-    while (query.next())
-    {
-        TNewDoc tmp;
-        tmp.DocID = query.value("DocID").toInt();
-        tmp.DocType = query.value("DocTypeID").toInt();
-        newDocsList.push_back(tmp);
-
-        lastDocNumber = std::max(lastDocNumber, query.value("rgItemRestID").toInt());
-    }
-
-    query.finish();
-
-    DBCommit(_db);
-
-    //обрабатываем новые документы по очереди
-    for (auto newDocItem: newDocsList)
-    {
-        //если есть обработчик для данного типа документов - запускаем его
-        if (_docs.contains(newDocItem.DocType))
-        {
-            auto newDocInfo = _docs[newDocItem.DocType]->getNewDoc(newDocItem.DocID);
-
-            if (_docs[newDocItem.DocType]->isError())
-            {
-                _loger->sendLogMsg(TDBLoger::MSG_CODE::ERROR_CODE, QString("Document from Topaz-AZS processing error. Type: %1. ID: %2. Msg: %3")
-                                       .arg(newDocItem.DocType).arg(newDocItem.DocID).arg(_docs[newDocItem.DocType]->errorString()));
-                continue;
-            }
-
-            res.push_back(newDocInfo);
-
-            _loger->sendLogMsg(TDBLoger::MSG_CODE::OK_CODE, QString("Document from Topaz-AZS processing success finished. Type: %1. ID: %2. Document number: %3")
-                                   .arg(newDocItem.DocType).arg(newDocItem.DocID).arg(newDocInfo.number));
-
-        }
-        else
-        {
-            _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, QString("Unknow document type: %1. ID: %2")
-                               .arg(newDocItem.DocType).arg(newDocItem.DocID));
-        }
-
-    }
-
-    if (_cnf->topaz_LastDocNumber() != lastDocNumber)
-    {
-        _cnf->set_topaz_LastDocNumber(lastDocNumber);
-        _cnf->save();
-    }
 
     return res;
 }

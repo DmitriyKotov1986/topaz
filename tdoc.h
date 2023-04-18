@@ -3,61 +3,81 @@
 #define TDOC_H
 
 //Qt
+#include <QObject>
 #include <QSqlDatabase>
 #include <QDateTime>
+#include <QTimer>
+#include <QList>
 
 //My
+#include "Common/tdbloger.h"
 #include "tconfig.h"
 
-namespace Topaz {
-
-class TDoc
+namespace Topaz
 {
-public:
-    typedef struct
+
+class TDoc: public QObject
+{
+    Q_OBJECT
+
+protected:
+    struct DocInfo
     {
         QString XMLText;
-        int number;
-        int smena;
+        int number = 0;
+        int smena = 0;
         QString type;
         QDateTime dateTime;
         QString creater;
-    } TDocInfo;
+    };
 
-    typedef struct
+    typedef QList<DocInfo> TDocsInfo;
+
+    struct SmenaInfo
     {
-        int snmena;
+        quint64 smenaID = 0;
+        quint32 smenaNumber = 0;
         QString operatorName;
-    } TSmenaInfo;
+        QDateTime startDateTime;
+        QDateTime endDateTime = QDateTime::fromString("2000-01-01 00:00:00.001", "yyyy-MM-dd hh:mm:ss:zzz");
+        bool isOpen = false;
+        bool isDeleted = false;
+    };
 
 public:
-    explicit TDoc(QSqlDatabase& db, int docTypeCode) : //в конструкторе наследника необходимо определить значение _docTypeCode
-        _cnf(TConfig::config()),
-        _db(db),
-        _docTypeCode(docTypeCode)
-    {
-        Q_CHECK_PTR(_cnf);
-        Q_ASSERT(db.isValid());
-        Q_ASSERT(docTypeCode >= 0);
-    }
-
-    virtual ~TDoc() {};
-
-    virtual TDocInfo getNewDoc(uint number = 0) = 0; //возвращает текст XML документа
-
-    int docTypeCode() const { //возвращает код документа
-        Q_ASSERT(_docTypeCode != -1);
-        return _docTypeCode;
-    }
+    explicit TDoc();
+    virtual ~TDoc();
 
     QString errorString() const { return _errorString; } //возвращает текст ошибки
     bool isError() const { return !_errorString.isEmpty(); } //возвращает наличие ошибки
 
+    int docTypeCode() const { return _docTypeCode; };
+
 protected:
-    QString _errorString;
+    SmenaInfo getCurrentSmena(); //возвращает номер текущей смены
+    void addInfoMsg(const QString& msg);
+    bool checkLastID(const QString& tableName, const QString& fieldName, const QString& idName, quint64 oldValue, quint64& newValue);
+
+private slots:
+    void workTimer_timeout();
+
+private:
+    virtual TDocsInfo getDoc() = 0;
+
+    void saveDocToDB(const DocInfo& docInfo); //сохраняет документ в локальную БД
+
+protected:
+     QString _errorString;
+
+private:
     TConfig* _cnf = nullptr;
-    QSqlDatabase& _db;
+    Common::TDBLoger* _loger = nullptr;
+    QSqlDatabase _db;
+    QSqlDatabase _topazDB;
+
     int _docTypeCode = -1;
+
+    QTimer* _workTimer;
 };
 
 } //Topaz

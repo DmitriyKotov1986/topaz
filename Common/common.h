@@ -26,6 +26,7 @@ enum EXIT_CODE: int
     SQL_EXECUTE_QUERY_ERR = -10,   //ошибка выполнения SQL запроса
     SQL_COMMIT_ERR = -11,
     SQL_NOT_OPEN_DB = -12,
+    SQL_INCORRECT_DATA = -13,      //из БД получены данные неверного формата
     //LevelGauge
     LEVELGAUGE_UNDEFINE_TYPE = -100,
     //SystemMonitor

@@ -6,15 +6,26 @@
 
 //My
 #include "tdoc.h"
+#include "Common/tdbloger.h"
+#include "tconfig.h"
 
-namespace Topaz {
+namespace Topaz
+{
 
 class TOffAct final: public TDoc
 {
 public:
-    explicit TOffAct(QSqlDatabase& db);
+    explicit TOffAct();
+    ~TOffAct();
 
-    TDoc::TDocInfo getNewDoc(uint number) override; //возвращает текст XML документа
+    TDocsInfo getDoc() override; //возвращает текст XML документа и прочие данные
+
+private:
+    Common::TDBLoger* _loger = nullptr;
+    Topaz::TConfig* _cnf = nullptr;
+
+    QTimer* _deleteFileTimer = nullptr;
+    QSqlDatabase _topazDB;
 };
 
 } //namespace Topaz

@@ -14,27 +14,19 @@
 namespace Topaz
 {
 
-class TCoupons : public QObject, public TDoc
+class TCoupons: public TDoc
 {
-    Q_OBJECT
-
 public:
-    explicit TCoupons(QSqlDatabase& db);
+    explicit TCoupons();
     ~TCoupons();
 
-    TDoc::TDocInfo getNewDoc(uint number) override; //возвращает текст XML документа
-    bool isEmpty() const { return _docs.isEmpty(); }
-
-private slots:
-    void getCoupons();
-    int getLastDocNumber();
+    TDocsInfo getDoc() override; //возвращает текст XML документа
 
 private:
-    QTimer* _getCouponsTimer = nullptr;
     Common::TDBLoger* _loger = nullptr;
     Topaz::TConfig* _cnf = nullptr;
 
-    QQueue<TDoc::TDocInfo> _docs;
+    QSqlDatabase _topazDB;
 };
 
 } //namespace Topaz
