@@ -25,11 +25,9 @@ void TConfig::deleteConfig()
 {
     Q_CHECK_PTR(configPtr);
 
-    if (configPtr != nullptr)
-    {
-        delete configPtr;
-        configPtr = nullptr;
-    }
+    delete configPtr;
+
+    configPtr = nullptr;
 }
 
 TConfig::TConfig(const QString& configFileName) :
@@ -175,6 +173,8 @@ TConfig::TConfig(const QString& configFileName) :
     _topaz_PriceDeleteFile = ini.value("PriceDeleteFile", true).toBool();
     _topaz_PriceFilesList = ini.value("PriceFilesList", QStringList()).toStringList();
 
+    _topaz_SessionReport = ini.value("SessionReport", true).toBool();
+
     ini.endGroup();
 
     ini.beginGroup("SERVER");
@@ -182,8 +182,34 @@ TConfig::TConfig(const QString& configFileName) :
     _srv_UserName = ini.value("UID", "000").toString();
     _srv_Password = ini.value("PWD", "").toString();
     _srv_Host = ini.value("Host", "localhost").toString();
-    _srv_Port = ini.value("Port", "").toUInt();
-    _srv_MaxRecord = ini.value("MaxRecord", "100").toUInt();
+    if (_srv_Host.isEmpty())
+    {
+        _errorString = QString("Key value [TOPAZ]/Host cannot be empty");
+
+        return;
+    }
+
+    _srv_Port = ini.value("Port", 0).toUInt(&ok);
+    if (!ok || _srv_Port == 0)
+    {
+        _errorString = QString("Key value [SERVER]/Port must be unsigned number from 1 to 65536");
+
+        return;
+    }
+    _srv_MaxRecord = ini.value("MaxRecord", 0).toUInt(&ok);
+    if (!ok)
+    {
+        _errorString = QString("Key value [SERVER]/MaxRecord must be unsigned number");
+
+        return;
+    }
+    _srv_lastQueryID = ini.value("LastQueryId", 0).toULongLong(&ok);
+    if (!ok)
+    {
+        _errorString = QString("Key value [SERVER]/LastQueryId must be unsigned number");
+
+        return;
+    }
 
     ini.endGroup();
 }
@@ -256,6 +282,7 @@ bool TConfig::save()
     ini.setValue("Host", _srv_Host);
     ini.setValue("Port", _srv_Port);
     ini.setValue("MaxRecord", _srv_MaxRecord);
+    ini.setValue("LastQueryId", _srv_lastQueryID);
 
     ini.endGroup();
 
@@ -284,6 +311,8 @@ bool TConfig::save()
     ini.setValue("LastSmenaID", _topaz_LastSmenaID);
     ini.setValue("PriceDeleteFile", _topaz_PriceDeleteFile);
     ini.setValue("PriceFilesList", _topaz_PriceFilesList);
+
+    ini.setValue("SessionReport", _topaz_SessionReport);
 
     ini.endGroup();
 

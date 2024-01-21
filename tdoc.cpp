@@ -61,6 +61,8 @@ TDoc::TDoc()
     QObject::connect(_workTimer, SIGNAL(timeout()), SLOT(workTimer_timeout()));
 
     _workTimer->start(_cnf->sys_Interval());
+
+    //мы не можем вызвать workTimer_timeout() из кнструктора, т.к. это виртуальный метод
 }
 
 TDoc::~TDoc()
@@ -80,19 +82,19 @@ void TDoc::workTimer_timeout()
 {
     const auto docsInfo = getDoc();
 
+    if (docsInfo.empty())
+    {
+        _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, "-->No new documents found");
+
+        return;
+    }
+
     for (const auto& docInfoItem : docsInfo)
     {
             saveDocToDB(docInfoItem);       
     }
 
-    if (docsInfo.empty())
-    {
-        _loger->sendLogMsg(TDBLoger::INFORMATION_CODE, "-->No new documents found");
-    }
-    else
-    {
-        _loger->sendLogMsg(TDBLoger::INFORMATION_CODE, QString("-->%1 documents saved in the database").arg(docsInfo.count()));
-    }
+    _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, QString("-->%1 documents saved in the database").arg(docsInfo.count()));
 }
 
 void TDoc::saveDocToDB(const DocInfo& docInfo)
@@ -100,23 +102,31 @@ void TDoc::saveDocToDB(const DocInfo& docInfo)
     //сохраняем документы к БД Системного монитора
     const QString queryText =
             QString("INSERT INTO TOPAZDOCS (DATE_TIME, DOC_TYPE, DOC_NUMBER, SMENA, CREATER, BODY) "
-                    "VALUES ('%1', '%2', %3, %4, '%5', '%6')")
+                    "VALUES ('%1', '%2', %3, %4, '%5', ? )")
                 .arg(docInfo.dateTime.toString("yyyy-MM-dd hh:mm:ss.zzz"))
                 .arg(docInfo.type)
                 .arg(docInfo.number)
                 .arg(docInfo.smena)
-                .arg(docInfo.creater.toUtf8().toBase64(QByteArray::Base64Encoding)) //для сохранения спецсимволов и кодировки сохряняем документ в base64
-                .arg(docInfo.XMLText.toUtf8().toBase64(QByteArray::Base64Encoding)); //для сохранения спецсимволов и кодировки сохряняем документ в base64
+                .arg(docInfo.creater.toUtf8().toBase64(QByteArray::Base64Encoding)); //для сохранения спецсимволов и кодировки сохряняем документ в base64
 
-    DBQueryExecute(_db, queryText);
+    _topazDB.transaction();
+    QSqlQuery query(_db);
+
+    query.prepare(queryText);
+    query.bindValue(0, docInfo.XMLText.toUtf8().toBase64(QByteArray::Base64Encoding));  //для сохранения спецсимволов и кодировки сохряняем документ в base64
+
+    writeDebugLogFile(QString("QUERY TO %1>").arg(_db.connectionName()), query.lastQuery());
+
+    if (!query.exec())
+    {
+        errorDBQuery(_db, query);
+    }
+
+    DBCommit(_db);
 }
 
 TDoc::SmenaInfo TDoc::getCurrentSmena()
 {
-    QSqlQuery query(_topazDB);
-    query.setForwardOnly(true);
-    _topazDB.transaction();
-
     QString queryText =
             "SELECT FIRST 1 MAX(\"SessionNum\") AS \"SessionNum\", \"SessionID\", \"UserName\", \"StartDateTime\", \"EndDateTime\" "
             "FROM \"sysSessions\" "
@@ -124,7 +134,11 @@ TDoc::SmenaInfo TDoc::getCurrentSmena()
             "GROUP BY \"SessionID\", \"UserName\", \"StartDateTime\", \"EndDateTime\" "
             "ORDER BY \"SessionNum\" DESC ";
 
-    writeDebugLogFile(QString("QUERY TO %1>").arg(_topazDB.connectionName()), query.lastQuery());
+    _topazDB.transaction();
+    QSqlQuery query(_topazDB);
+    query.setForwardOnly(true);
+
+    writeDebugLogFile(QString("QUERY TO %1>").arg(_topazDB.connectionName()), queryText);
 
     if (!query.exec(queryText))
     {
@@ -215,12 +229,12 @@ bool Topaz::TDoc::checkLastID(const QString& tableName, const QString& fieldName
 
     if (res)
     {
-        _loger->sendLogMsg(TDBLoger::INFORMATION_CODE, QString("Check %1 passed successfully").arg(idName));
+        _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, QString("Check %1 passed successfully").arg(idName));
     }
     else
     {
         addInfoMsg(msg);
-        _loger->sendLogMsg(TDBLoger::WARNING_CODE, msg);
+        _loger->sendLogMsg(TDBLoger::MSG_CODE::WARNING_CODE, msg);
     }
 
     return res;

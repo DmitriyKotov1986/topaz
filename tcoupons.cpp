@@ -15,34 +15,35 @@ using namespace Common;
 static const QString DOC_NAME = "Coupons";
 
 Topaz::TCoupons::TCoupons()
-  : TDoc()
-  , _loger(TDBLoger::DBLoger())
-  , _cnf(TConfig::config())
+    : TDoc()
+    , _loger(TDBLoger::DBLoger())
+    , _cnf(TConfig::config())
 {
-  Q_CHECK_PTR(_loger);
+    Q_CHECK_PTR(_loger);
+    Q_CHECK_PTR(_cnf);
 
-  //настраиваем подключение к БД Топаза
-  _topazDB = QSqlDatabase::addDatabase(_cnf->topazdb_Driver(), QString("CouponsTopazDB%1").arg(_cnf->topaz_OffActCode()));
-  _topazDB.setDatabaseName(_cnf->topazdb_DBName());
-  _topazDB.setUserName(_cnf->topazdb_UserName());
-  _topazDB.setPassword(_cnf->topazdb_Password());
-  _topazDB.setConnectOptions(_cnf->topazdb_ConnectOptions());
-  _topazDB.setPort(_cnf->topazdb_Port());
-  _topazDB.setHostName(_cnf->topazdb_Host());
+    //настраиваем подключение к БД Топаза
+    _topazDB = QSqlDatabase::addDatabase(_cnf->topazdb_Driver(), QString("CouponsTopazDB%1").arg(_cnf->topaz_OffActCode()));
+    _topazDB.setDatabaseName(_cnf->topazdb_DBName());
+    _topazDB.setUserName(_cnf->topazdb_UserName());
+    _topazDB.setPassword(_cnf->topazdb_Password());
+    _topazDB.setConnectOptions(_cnf->topazdb_ConnectOptions());
+    _topazDB.setPort(_cnf->topazdb_Port());
+    _topazDB.setHostName(_cnf->topazdb_Host());
 
-  //подключаемся к БД Топаз-АЗС
-  if (!_topazDB.open())
-  {
-      QString _errorString = QString("Cannot connect to Topaz_AZS database. Error: %1").arg(_topazDB.lastError().text());
+    //подключаемся к БД Топаз-АЗС
+    if (!_topazDB.open())
+    {
+        QString _errorString = QString("Cannot connect to Topaz_AZS database. Error: %1").arg(_topazDB.lastError().text());
 
-      return;
-  }
+        return;
+    }
 
-  quint64 id = 0;
-  if (!checkLastID("rgCoupons", "CouponID", "LastCouponsID", _cnf->topaz_LastCouponsID(), id))
-  {
-      _cnf->set_topaz_LastCouponsID(id);
-  }
+    quint64 id = 0;
+    if (!checkLastID("rgCoupons", "CouponID", "LastCouponsID", _cnf->topaz_LastCouponsID(), id))
+    {
+        _cnf->set_topaz_LastCouponsID(id);
+    }
 }
 
 Topaz::TCoupons::~TCoupons()
@@ -61,8 +62,8 @@ Topaz::TDoc::TDocsInfo TCoupons::getDoc()
     auto lastID = _cnf->topaz_LastCouponsID();
 
     //получаем список новых документов
-    QSqlQuery query(_topazDB);
     _topazDB.transaction();
+    QSqlQuery query(_topazDB);
 
     QString queryText = QString("SELECT C.\"CouponID\", \"UserName\", C.\"Date\", \"SessionNum\", C.\"DocID\", C.\"Volume\", "
                                 "       C.\"CouponCode\", C.\"CouponFuelName\", C.\"CouponVolume\", C.\"VolumeFact\" "
@@ -94,7 +95,7 @@ Topaz::TDoc::TDocsInfo TCoupons::getDoc()
         docInfo.creater = query.value("UserName").toString();
         docInfo.type = DOC_NAME;
 
-        _loger->sendLogMsg(TDBLoger::INFORMATION_CODE,
+        _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE,
                            QString("-->Detect coupons sales.Number: %1, Smena: %2, Operator: %3, Date: %4, Volume: %5, Product: %6")
                                 .arg(docInfo.number)
                                 .arg(docInfo.smena)

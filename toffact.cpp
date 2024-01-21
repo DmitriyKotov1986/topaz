@@ -10,7 +10,6 @@
 #include "Common/common.h"
 
 using namespace Topaz;
-
 using namespace Common;
 
 static const QString DOC_NAME = "OffAct";
@@ -21,6 +20,7 @@ TOffAct::TOffAct()
     , _cnf(TConfig::config())
 {
     Q_CHECK_PTR(_loger);
+    Q_CHECK_PTR(_cnf);
 
     //настраиваем подключение к БД Топаза
     _topazDB = QSqlDatabase::addDatabase(_cnf->topazdb_Driver(), QString("OffActTopazDB%1").arg(_cnf->topaz_OffActCode()));
@@ -56,10 +56,10 @@ TOffAct::~TOffAct()
 
 TDoc::TDocsInfo TOffAct::getDoc()
 {
-    _loger->sendLogMsg(TDBLoger::INFORMATION_CODE, "Launching Off Act detection");
+    _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, "Launching Off Act detection");
 
-    QSqlQuery query(_topazDB);
     _topazDB.transaction();
+    QSqlQuery query(_topazDB);
 
     auto lastID = _cnf->topaz_LastOffActID();
 
@@ -102,7 +102,7 @@ TDoc::TDocsInfo TOffAct::getDoc()
         docInfo.creater = query.value("UserName").toString();
         docInfo.type = DOC_NAME;
 
-        _loger->sendLogMsg(TDBLoger::INFORMATION_CODE,
+        _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE,
                            QString("-->Detect new Off Act. Number: %1, Smena: %2, Operator: %3, Date: %4")
                                 .arg(docInfo.number)
                                 .arg(docInfo.smena)

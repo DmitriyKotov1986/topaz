@@ -56,7 +56,7 @@ Topaz::TInputAct::TInputAct()
     for (const auto& fileNameItem : _cnf->topaz_InputActFilesList())
     {
         _filesForDelete.insert(fileNameItem, QDateTime::currentDateTime());
-        _loger->sendLogMsg(TDBLoger::INFORMATION_CODE, QString("The file will be deleted: %1").arg(fileNameItem));
+        _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, QString("The file will be deleted: %1").arg(fileNameItem));
     }
 }
 
@@ -77,17 +77,17 @@ Topaz::TInputAct::~TInputAct()
 
 Topaz::TDoc::TDocsInfo Topaz::TInputAct::getDoc()
 {
-    _loger->sendLogMsg(TDBLoger::INFORMATION_CODE, "Launching Input Act detection");
+    _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, "Launching Input Act detection");
 
     auto smenaInfo = getCurrentSmena();
 
-    QSqlQuery query(_topazDB);
     _topazDB.transaction();
+    QSqlQuery query(_topazDB);
 
     QString queryText =
         QString("SELECT \"NDoc\", \"InBillHID\", \"DateDoc\" "
                 "FROM \"trInBillH\" "
-                " WHERE \"InBillHID\" > %1")
+                "WHERE \"InBillHID\" > %1")
                 .arg(_cnf->topaz_LastInputActID());
 
     writeDebugLogFile(QString("QUERY TO %1>").arg(_topazDB.connectionName()), query.lastQuery());
@@ -152,7 +152,7 @@ void TInputAct::deleteFiles()
 
         if (!QFileInfo::exists(fileForDelete_it.key()))
         {
-            _loger->sendLogMsg(TDBLoger::INFORMATION_CODE, QString("File %1 already deleted").arg(fileForDelete_it.key()));
+            _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, QString("File %1 already deleted").arg(fileForDelete_it.key()));
         }
         else
         {
@@ -160,11 +160,11 @@ void TInputAct::deleteFiles()
             QFile file(fileName);
             if (file.remove())
             {
-                _loger->sendLogMsg(TDBLoger::OK_CODE, QString("File deleted. File name: %1").arg(fileName));
+                _loger->sendLogMsg(TDBLoger::MSG_CODE::OK_CODE, QString("File deleted. File name: %1").arg(fileName));
             }
             else
             {
-                _loger->sendLogMsg(TDBLoger::INFORMATION_CODE,
+                _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE,
                     QString("Cannot deleted file. Skip. File name: %1. Error: %2")
                         .arg(fileName).arg(file.errorString()));
             }
@@ -196,14 +196,14 @@ void TInputAct::addFileForDelete(int number)
         if (fileName.indexOf(QString("00%1.xml").arg(number)) > 0)
         {
             _filesForDelete.insert(fileName, QDateTime::currentDateTime());
-            _loger->sendLogMsg(TDBLoger::INFORMATION_CODE, QString("-->Find file Input Act with number: %1. File name: %2")
+            _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, QString("-->Find file Input Act with number: %1. File name: %2")
                 .arg(number).arg(fileName));
 
             return;
         }
     }
 
-    _loger->sendLogMsg(TDBLoger::OK_CODE, QString("-->Cannot find file for Input Act with number: %1. Skip.").arg(number));
+    _loger->sendLogMsg(TDBLoger::MSG_CODE::OK_CODE, QString("-->Cannot find file for Input Act with number: %1. Skip.").arg(number));
 }
 
 QString TInputAct::makeXML(const DocInfo &docInfo)

@@ -9,6 +9,7 @@
 #include "tinputact.h"
 #include "tcoupons.h"
 #include "tnewsmena.h"
+#include "tquery.h"
 
 using namespace Topaz;
 
@@ -66,6 +67,19 @@ Topaz::TGetDocs::TGetDocs()
             return;
         }
         _docs.push_back(newSmena);
+    }
+
+    //Добавляем класс произвольного запроса
+    {
+        auto newQuery = new TQuery();
+        if (newQuery->isError())
+        {
+            _errorString = QString("Error in creating Query class. Error: %1").arg(newQuery->errorString());
+            delete newQuery;
+
+            return;
+        }
+        _docs.push_back(newQuery);
     }
 }
 

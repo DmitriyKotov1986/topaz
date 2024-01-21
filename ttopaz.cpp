@@ -20,8 +20,10 @@ using namespace Common;
 TTopaz::TTopaz(QObject* parent /* = nullptr*/)
     : QObject(parent)
     , _cnf(Topaz::TConfig::config())
+    , _queryQueue(QueryQueue::createQueryQueue())
 {
     Q_CHECK_PTR(_cnf);
+    Q_CHECK_PTR(_queryQueue);
 
     //настраиваем подключение к БД
     _db = QSqlDatabase::addDatabase(_cnf->db_Driver(), "MainDB");
@@ -71,33 +73,22 @@ TTopaz::~TTopaz()
 {
     Q_CHECK_PTR(_sendHTTPTimer);
     Q_CHECK_PTR(_HTTPQuery);
+    Q_CHECK_PTR(_queryQueue);
 
-    if (_sendHTTPTimer != nullptr)
-    {
-        delete _sendHTTPTimer;
-    }
+    delete _sendHTTPTimer;
 
     if (_db.isOpen())
     {
         _db.close();
     }
 
-    if (_getDocs != nullptr)
-    {
-        delete _getDocs;
-    }
+    delete _getDocs;
 
     _loger->sendLogMsg(TDBLoger::MSG_CODE::OK_CODE, "Successfully finished");
 
-    if (_loger != nullptr)
-    {
-        TDBLoger::deleteDBLoger();
-    }
-
-    if (_HTTPQuery != nullptr)
-    {
-        THTTPQuery::deleteTHTTPQuery();
-    }
+    QueryQueue::deleteConfig();
+    TDBLoger::deleteDBLoger();
+    THTTPQuery::deleteTHTTPQuery();
 }
 
 void TTopaz::start()
@@ -110,25 +101,26 @@ void TTopaz::start()
     if (!_db.open())
     {
         QString msg = QString("Cannot connect to database. Error: %1").arg(_db.lastError().text());
-        _loger->sendLogMsg(TDBLoger::CRITICAL_CODE, msg);
+        _loger->sendLogMsg(TDBLoger::MSG_CODE::CRITICAL_CODE, msg);
 
         emit finished();
 
         return;
     };
 
-
     //создаем классы обслуживающие разлиные документы из БД Топаза
     _getDocs = new TGetDocs(); // в конструкторе этого класса создаются классы отслеживающие различные документы в БД Топаза
     if (_getDocs->isError())
     {
         QString msg = QString("Cannot start to get new documents from Topaz-AZS database. Error: %1").arg(_getDocs->errorString());
-        _loger->sendLogMsg(TDBLoger::CRITICAL_CODE, msg);
+        _loger->sendLogMsg(TDBLoger::MSG_CODE::CRITICAL_CODE, msg);
 
         emit finished();
 
         return;
     }
+
+    _lastQueryID = _cnf->srv_lastQueryID();
 
     _sendHTTPTimer->start();
 
@@ -143,6 +135,14 @@ void TTopaz::resetSending()
     _sendingDocsID.clear();
 }
 
+void TTopaz::addQueryQueue(const QueryQueue::QueryData &data)
+{
+    Q_CHECK_PTR(_queryQueue);
+
+    auto count = _queryQueue->enqueue(data);
+    _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, QString("Query with id %1 added to queue. Total query: %2").arg(data.id).arg(count));
+}
+
 void TTopaz::sendToHTTPServer()
 {
     //если ответ на предыдущий запрос еще не получен - то пропускаем этот такт таймера
@@ -151,8 +151,8 @@ void TTopaz::sendToHTTPServer()
         return;
     }
 
-    QSqlQuery query(_db);
     _db.transaction();
+    QSqlQuery query(_db);
 
     QString queryText = QString("SELECT FIRST %1 ID, DATE_TIME, DOC_TYPE, DOC_NUMBER, SMENA, CREATER, BODY "
                                 "FROM TOPAZDOCS "
@@ -173,7 +173,9 @@ void TTopaz::sendToHTTPServer()
     XMLWriter.writeStartDocument("1.0");
     XMLWriter.writeStartElement("Root");
     XMLWriter.writeTextElement("AZSCode", _cnf->srv_UserName());
+    XMLWriter.writeTextElement("ProtocolVersion","0.1");
     XMLWriter.writeTextElement("ClientVersion", QCoreApplication::applicationVersion());
+    XMLWriter.writeTextElement("LastQueryID", _firstTime ? "0" : QString::number(_lastQueryID));
 
     while (query.next())
     {
@@ -212,7 +214,134 @@ void TTopaz::errorOccurredHTTP(const QString& msg)
 
 void TTopaz::getAnswerHTTP(const QByteArray &answer)
 {
-    if (answer.left(2) == "OK")
+    QXmlStreamReader XMLReader(answer);
+
+    bool loadStatus = false;
+
+    while ((!XMLReader.atEnd()) && (!XMLReader.hasError()))
+    {
+        QXmlStreamReader::TokenType Token = XMLReader.readNext();
+        if (Token == QXmlStreamReader::StartDocument)
+        {
+            continue;
+        }
+        else if (Token == QXmlStreamReader::EndDocument)
+        {
+            break;
+        }
+        else if (Token == QXmlStreamReader::StartElement)
+        {
+            if (XMLReader.name().toString()  == "Root")
+            {
+                while ((XMLReader.readNext() != QXmlStreamReader::EndElement) && !XMLReader.atEnd() && !XMLReader.hasError())
+                {
+                    if (XMLReader.name().toString().isEmpty())
+                    {
+                        continue;
+                    }
+                    else if (XMLReader.name().toString()  == "ProtocolVersion") //пока версию протокола не проверяем
+                    {
+                        XMLReader.readElementText();
+                    }
+                    else if (XMLReader.name().toString()  == "LoadStatus")
+                    {
+                        loadStatus = (XMLReader.readElementText() == "1");
+                    }
+                    else if (XMLReader.name().toString()  == "Queries")
+                    {
+                        while ((XMLReader.readNext() != QXmlStreamReader::EndElement) && !XMLReader.atEnd() && !XMLReader.hasError())
+                        {
+                            if (XMLReader.name().toString().isEmpty())
+                            {
+                                continue;
+                            }
+                            else if (XMLReader.name().toString()  == "Query")
+                            {
+                                QueryQueue::QueryData data;
+
+                                while ((XMLReader.readNext() != QXmlStreamReader::EndElement) && !XMLReader.atEnd() && !XMLReader.hasError())
+                                {
+                                    if (XMLReader.name().toString().isEmpty())
+                                    {
+                                        continue;
+                                    }
+                                    else if (XMLReader.name().toString()  == "QueryID")
+                                    {
+                                        bool ok = false;
+                                        data.queryId = XMLReader.readElementText().toULongLong(&ok);
+                                        if (!ok)
+                                        {
+                                            _loger->sendLogMsg(TDBLoger::MSG_CODE::WARNING_CODE, QString("Incorrect value tag (Root/Queries/Query/%1). Value: %2. Value must be number.").arg(XMLReader.name().toString()));
+                                        }
+                                    }
+                                    else if (XMLReader.name().toString()  == "ID")
+                                    {
+                                        bool ok = false;
+                                        data.id = XMLReader.readElementText().toULong(&ok);
+                                        if (!ok)
+                                        {
+                                            _loger->sendLogMsg(TDBLoger::MSG_CODE::WARNING_CODE, QString("Incorrect value tag (Root/Queries/Query/%1). Value: %2. Value must be number.").arg(XMLReader.name().toString()));
+                                        }
+                                    }
+                                    else if (XMLReader.name().toString()  == "QueryText")
+                                    {
+                                        data.queryText = XMLReader.readElementText();
+                                        if (data.queryText.isEmpty())
+                                        {
+                                            _loger->sendLogMsg(TDBLoger::MSG_CODE::WARNING_CODE, QString("Incorrect value tag (Root/Queries/Query/%1). Value: %2. Value must not be emply.").arg(XMLReader.name().toString()));
+                                        }
+                                    }
+                                    else
+                                    {
+                                        _loger->sendLogMsg(TDBLoger::MSG_CODE::WARNING_CODE, QString("Undefine tag in XML (Root/Queries/Query/%1)").arg(XMLReader.name().toString()));
+
+                                        XMLReader.readElementText();
+                                    }
+                                } 
+
+                                if (!data.queryText.isEmpty())
+                                {
+                                    addQueryQueue(data);
+                                    if (_lastQueryID < data.id)
+                                    {
+                                        _lastQueryID = data.id;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                _loger->sendLogMsg(TDBLoger::MSG_CODE::WARNING_CODE, QString("Undefine tag in XML (Root/Queries/%1)").arg(XMLReader.name().toString()));
+
+                                XMLReader.readElementText();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        _loger->sendLogMsg(TDBLoger::MSG_CODE::WARNING_CODE, QString("Undefine tag in XML (Root/%1)").arg(XMLReader.name().toString()));
+
+                        XMLReader.readElementText();
+                    }
+                }
+            }
+            else
+            {
+                _loger->sendLogMsg(TDBLoger::MSG_CODE::WARNING_CODE, QString("Undefine tag in XML (%1)").arg(XMLReader.name().toString()));
+
+                XMLReader.readElementText();
+            }
+        }
+    }
+
+    if (XMLReader.hasError()) { //неудалось распарсить пришедшую XML
+        _loger->sendLogMsg(TDBLoger::MSG_CODE::ERROR_CODE, QString("Incorrect answer from server. Parser msg: %1 Answer from server: %2").arg(XMLReader.errorString()).arg(answer.left(200)));
+
+        resetSending();
+
+        return;
+    }
+
+    if (loadStatus)
     {
         if (!_sendingDocsID.isEmpty())
         {
@@ -228,6 +357,8 @@ void TTopaz::getAnswerHTTP(const QByteArray &answer)
         _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, "Data has been successfully sent to the server.");
 
         resetSending();
+
+        _firstTime = false;
 
         if (neetSending)
         {

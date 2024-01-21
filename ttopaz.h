@@ -15,6 +15,7 @@
 #include "Common/tdbloger.h"
 #include "tconfig.h"
 #include "tgetdocs.h"
+#include "queryqueue.h"
 
 namespace Topaz {
 
@@ -40,11 +41,13 @@ private slots:
 
 private:
     void resetSending();
+    void addQueryQueue(const QueryQueue::QueryData& data);
 
 private:
     TConfig* _cnf = nullptr; //настройки
     Common::THTTPQuery* _HTTPQuery = nullptr;
     Common::TDBLoger* _loger = nullptr;
+    QueryQueue* _queryQueue = nullptr;
 
     QSqlDatabase _db;        //Промежуточная БД
 
@@ -53,6 +56,9 @@ private:
     bool _sending = false;            //флаг что в текущий момент идет пересылка данных.
 
     TGetDocs* _getDocs = nullptr;
+    quint64 _lastQueryID = 0; //ИД последнего запрошенного запроса
+
+    bool _firstTime = true; //флаг отправки первого запроса
 };
 
 } //namespace LevelGauge

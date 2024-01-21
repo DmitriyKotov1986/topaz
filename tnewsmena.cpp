@@ -10,7 +10,6 @@
 #include "Common/common.h"
 
 using namespace Topaz;
-
 using namespace Common;
 
 static const QString DOC_NAME = "NewSmena";
@@ -20,6 +19,9 @@ TNewSmena::TNewSmena()
     , _loger(TDBLoger::DBLoger())
     , _cnf(TConfig::config())
 {
+    Q_CHECK_PTR(_loger);
+    Q_CHECK_PTR(_cnf);
+
     //настраиваем подключение к БД Топаза
     _topazDB = QSqlDatabase::addDatabase(_cnf->topazdb_Driver(), QString("SmenaTopazDB"));
     _topazDB.setDatabaseName(_cnf->topazdb_DBName());
@@ -40,12 +42,12 @@ TNewSmena::TNewSmena()
     _filesForDelete = _cnf->topaz_PriceFilesList();
     for (const auto& fileNameItem: _filesForDelete)
     {
-        _loger->sendLogMsg(TDBLoger::INFORMATION_CODE, QString("The file will be deleted: %1").arg(fileNameItem));
+        _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, QString("The file will be deleted: %1").arg(fileNameItem));
     }
 
     if (!_filesForDelete.isEmpty())
     {
-        QTimer::singleShot(60000, this, SLOT(()[]{ deleteFiles(); }));
+        QTimer::singleShot(60000, this, SLOT(deleteFiles()));
     }
 
     quint64 id = 0;
@@ -65,10 +67,10 @@ TNewSmena::~TNewSmena()
 
 TDoc::TDocsInfo TNewSmena::getDoc()
 {
-    _loger->sendLogMsg(TDBLoger::INFORMATION_CODE, "Launching new smens detection");
+    _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, "Launching new smens detection");
 
-    QSqlQuery query(_topazDB);
     _topazDB.transaction();
+    QSqlQuery query(_topazDB);
 
     QString queryText =
             QString("SELECT \"SessionID\", \"SessionNum\", \"UserName\", \"StartDateTime\", \"EndDateTime\", \"Deleted\" "
@@ -100,7 +102,7 @@ TDoc::TDocsInfo TNewSmena::getDoc()
         }
         tmp.isDeleted = query.value("Deleted").toBool();
 
-        _loger->sendLogMsg(TDBLoger::INFORMATION_CODE,
+        _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE,
                            QString("-->Detect start new smen. ID: %1, Number: %2, Operator: %3, Start: %4, End: %5, Deleted: %6")
                                 .arg(tmp.smenaID)
                                 .arg(tmp.smenaNumber)
@@ -155,7 +157,7 @@ TDoc::TDocsInfo TNewSmena::getDoc()
         {
             if (addFileForDelete())
             {
-                QTimer::singleShot(60000, this, SLOT(()[]{ deleteFiles(); }));
+                QTimer::singleShot(60000, this, SLOT(deleteFiles()));
             }
         }
 
@@ -172,18 +174,18 @@ void Topaz::TNewSmena::deleteFiles()
     {
         if (!QFileInfo::exists(fileName))
         {
-            _loger->sendLogMsg(TDBLoger::OK_CODE, QString("File %1 already deleted").arg(fileName));
+            _loger->sendLogMsg(TDBLoger::MSG_CODE::OK_CODE, QString("File %1 already deleted").arg(fileName));
         }
         else
         {
             QFile file(fileName);
             if (file.remove())
             {
-                _loger->sendLogMsg(TDBLoger::OK_CODE, QString("File deleted. File name: %1").arg(fileName));
+                _loger->sendLogMsg(TDBLoger::MSG_CODE::OK_CODE, QString("File deleted. File name: %1").arg(fileName));
             }
             else
             {
-                _loger->sendLogMsg(TDBLoger::INFORMATION_CODE,
+                _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE,
                     QString("Cannot deleted file. Skip. File name: %1. Error: %2")
                         .arg(fileName).arg(file.errorString()));
             }
@@ -210,12 +212,11 @@ bool Topaz::TNewSmena::addFileForDelete()
         if (fileName.indexOf("price") > 0)
         {
             _filesForDelete.push_back(fileName);
-            _loger->sendLogMsg(TDBLoger::INFORMATION_CODE, QString("-->Find file Price File name: %1").arg(fileName));
+            _loger->sendLogMsg(TDBLoger::MSG_CODE::INFORMATION_CODE, QString("-->Find file Price File name: %1").arg(fileName));
 
             isFound = true;
         }
     }
-
 
     if (isFound)
     {
@@ -223,7 +224,7 @@ bool Topaz::TNewSmena::addFileForDelete()
     }
     else
     {
-        _loger->sendLogMsg(TDBLoger::OK_CODE, QString("-->Cannot find file for Price."));
+        _loger->sendLogMsg(TDBLoger::MSG_CODE::OK_CODE, QString("-->Cannot find file for Price."));
     }
 
     return isFound;

@@ -67,6 +67,8 @@ public:
     const QStringList& topaz_PriceFilesList() const { return  _topaz_PriceFilesList; };
     void set_topaz_PriceFilesList(const QStringList& priceFilesList) { _topaz_PriceFilesList = priceFilesList; save(); };
 
+    bool topaz_SessionReport() const { return _topaz_SessionReport; }
+
     //[SYSTEM]
     int sys_Interval() const { return _sys_Interval; }
     bool sys_DebugMode() const { return _sys_DebugMode; }
@@ -77,6 +79,8 @@ public:
     const QString& srv_UserName() const { return _srv_UserName; }
     const QString& srv_Password() const { return _srv_Password; }
     int srv_MaxRecord() const { return _srv_MaxRecord; }
+    quint64 srv_lastQueryID() const { return  _srv_lastQueryID; };
+    void set_srv_lastQueryID(quint64 srv_lastQueryID) { _srv_lastQueryID = srv_lastQueryID; save(); };
 
     QString errorString();
     bool isError() const { return !_errorString.isEmpty(); }
@@ -126,6 +130,7 @@ private:
     bool _topaz_PriceDeleteFile = true;
     QStringList _topaz_PriceFilesList;
 
+    bool _topaz_SessionReport = true;
 
     //[SYSTEM]
     int _sys_Interval = 60 * 1000;
@@ -137,6 +142,7 @@ private:
     QString _srv_UserName;
     QString _srv_Password;
     int _srv_MaxRecord = 100;
+    quint64 _srv_lastQueryID = 0;
 };
 
 } //namespace Topaz
